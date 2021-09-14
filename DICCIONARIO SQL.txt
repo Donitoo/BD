@@ -1,0 +1,74 @@
+VISTAS
+
+TABLA	CLIENT
+get_client	
+VARIABLES	
+OUTPUT	TABLA CLIENTE
+
+TABLA	ORDEN
+get_orders	
+VARIABLES	
+OUTPUT	TABLA ORDEN
+
+get_order	
+VARIABLES	
+INPUT	client_id
+OUTPUT	ARRAY ORDENES
+
+
+TABLA	ORDER_ITEM
+get_orderItems	
+VARIABLES	
+INPUT	order_id
+OUTPUT	ARRAY ITEM ORDENES
+
+TABLA	BREAD
+get_bread	
+VARIABLES	
+OUTPUT	TABLA BREAD
+
+
+
+
+PROCEDIMIENTOS ALMACENADOS
+
+new_order	
+VARIABLES	
+INPUT	client_id
+INPUT	array panes
+INPUT	array cantidad
+
+
+new_bread	
+VARIABLES	
+INPUT	type
+INPUT	price
+
+
+new_client	
+VARIABLES	
+INPUT	DBA
+INPUT	phone
+INPUT	email
+INPUT	password
+
+
+new_return	
+VARIABLES	
+INPUT	client_id
+INPUT	array panes
+INPUT	array cantidad
+
+
+get_discount	
+VARIABLES	
+INPUT	client_id
+OUTPUT	discount
+
+
+iniciar_sesion	
+VARIABLES	
+INPUT	email
+INPUT	password
+OUTPUT	resultado (true or false)
+
