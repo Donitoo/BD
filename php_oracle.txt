@@ -1,0 +1,59 @@
+PHP 5.1.2 improved collection support with a new function oci_bind_array_by_name().
+Coupled with a helper PL/SQL function, this can be very efficient for insertion. We can bind
+a PHP array containing all data and send it to the database with a single oci_execute().
+This example creates a PL/SQL package with two procedures. The first, myinsproc(), will
+be passed a PHP array to insert. It uses Oracle’s “bulk” FORALL statement for fast insertion.
+The second procedure, myselproc(), selects from the table using the BULK COLLECT clause
+and returns the array as the OUT parameter p_arr. The p_count parameter is used to make
+sure PL/SQL does not try to return more values than the PHP array can handle.
+SQL> drop table mytab;
+SQL> create table mytab(name varchar2(20));
+SQL> create or replace package mypkg as
+2       type arrtype is table of varchar2(20) index by pls_integer;
+3       procedure myinsproc(p_arr in arrtype);
+4       procedure myselproc(p_arr out arrtype, p_count in number);
+5 end mypkg;
+6 /
+SQL> create or replace package body mypkg as
+2          procedure myinsproc(p_arr in arrtype) is
+3        begin
+4     forall i in indices of p_arr
+5      insert into mytab values (p_arr(i));
+6       end myinsproc;
+7       procedure myselproc(p_arr out arrtype, p_count in number) is
+8       begin
+9 select name bulk collect
+10     into p_arr
+11     from mytab
+12     where rownum <= p_count;
+13     end myselproc;
+14  end mypkg;
+15 /
+To insert a PHP array into mytab, use:
+navioo_arrayinsert.php
+<?php
+$c = oci_connect('hr', 'hrpwd', '//localhost/XE');
+$a = array('abc', 'def', 'ghi', 'jkl');
+$s = oci_parse($c, "begin mypkg.myinsproc(:p1); end;");
+oci_bind_array_by_name($s, ":p1", $a, count($a), -1, SQLT_CHR);
+oci_execute($s);
+?>
+
+To query the table in PHP, the myselproc() function can be called. The number of elements
+$numelems to be fetched is passed into myselproc() by being bound to :n. This limits the
+query to return $numelems rows. The value is also used in the
+oci_bind_array_by_name() call so the output array $r is correctly sized to accept that
+number of rows back. The value 20 is the width of the database column. Any lower value
+could result in shorter strings being returned to PHP.
+<?
+    $c = oci_connect("hr", "hrpwd", "//localhost/XE");
+    $numelems = 4;
+    $s = oci_parse($c, "begin mypkg.myselproc(:p1, :n); end;");
+    oci_bind_array_by_name($s, ":p1", $r, $numelems, 20, SQLT_CHR);
+    oci_bind_by_name($s, ":n", $numelems);
+    oci_execute($s);
+    var_dump($r); // print the array
+?>
+
+A number of other Oracle types can be bound with oci_array_bind_by_name(), for
+example SQLT_FLT for floating point numbers.
