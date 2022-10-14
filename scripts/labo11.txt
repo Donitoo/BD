@@ -1,0 +1,143 @@
+Laboratorio 11
+
+4.1.1 Obtenga el color y ciudad para las partes que no son de París, con un peso mayor
+de diez.
+select color,city
+from partes
+where city <>'Paris';
+
+4.1.2 Para todas las partes, obtenga el número de parte y el peso de dichas partes en
+gramos.
+select p#, weight*453.592
+from partes;
+
+4.1.3 Obtenga el detalle completo de todos los proveedores.
+select * from partes;
+
+4.1.4 Obtenga todas las combinaciones de proveedores y partes para aquellos provee-
+dores y partes co-localizados.
+select s.s#,p.p#  from suppliers s, partes p
+where s.city = p.city
+order by s.s#,p#;
+
+4.1.5 Obtenga todos los pares de nombres de ciudades de tal forma que el proveedor
+localizado en la primera ciudad del par abastece una parte almacenada en la se-
+gunda ciudad del par.
+select s.city,p.city
+from envios e join suppliers s on e.s#=s.s#
+join partes p on e.p#=p.p# 
+order by e.s#,e.p#;
+ 
+
+
+4.1.6 Obtenga todos los pares de número de proveedor tales que los dos proveedores
+del par estén co-localizados.
+select p1.p#,p2.p#
+from partes p1, partes p2
+where p1.city = p2.city and p1.p#<>p2.p#
+order by p1.p#,p2.p#;
+
+
+4.1.7 Obtenga el número total de proveedores.
+select count(s#) as "#Proveedores"
+from suppliers;
+
+4.1.8 Obtenga la cantidad mínima y la cantidad máxima para la parte P2.
+select min(qty) as "Minimo",max(qty) as "Máximo"
+from envios
+where p#='p2'
+group by p#;
+
+4.1.9 Para cada parte abastecida, obtenga el número de parte y el total despachado.
+select p#, sum(qty) as "Total"
+from envios
+group by p#;
+
+4.1.10 Obtenga el número de parte para todas las partes abastecidas por más de
+un proveedor.
+select p.p#
+from partes p
+join (select p#, count(p#) as cant
+        from envios
+        group by p#) t
+on t.p#=p.p#
+where t.cant>1;
+
+4.1.11 Obtenga el nombre de proveedor para todos los proveedores que abastecen
+la parte P2.
+select sname
+from suppliers s
+join envios e on e.s#=s.s#
+where e.p#='p2';
+
+4.1.12 Obtenga el nombre de proveedor de quienes abastecen por lo menos una
+parte.
+select sname
+from suppliers s
+where s.s# in (select s#
+                from envios
+                group by s#);
+
+
+4.1.13 Obtenga el número de proveedor para los proveedores con estado menor
+que el máximo valor de estado en la tabla S.
+select s#
+from suppliers s
+where s.status < (select max(status)
+                from suppliers);
+
+4.1.14 Obtenga el nombre de proveedor para los proveedores que abastecen la
+parte P2 (aplicar EXISTS en su solución).
+create or replace procedure proveedorNombre
+(parte_id partes.p#%type)
+is
+    cursor m_cursor is
+        select s.sname
+        from suppliers s
+        where exists  
+         (select *
+                from envios e
+                where e.s#=s.s# and e.p#=parte_id) ;
+    v_sname suppliers.sname%type;
+begin
+     open m_cursor;
+    
+     loop
+        fetch m_cursor into v_sname;
+     exit when m_cursor%notfound;
+        dbms_output.put_line('Nombre: '||v_sname);
+     end loop;
+ 
+end proveedorNombre;
+ 
+set serveroutput on
+execute proveedorNombre('p2');
+
+
+4.1.15 Obtenga el nombre de proveedor para los proveedores que no abastecen la
+parte P2.
+select s.sname
+    from suppliers s
+    where s.s# not in  
+         (select e.s#
+            from envios e
+            where e.p#='p2'
+            group by e.s#) ;
+
+4.1.16 Obtenga el nombre de proveedor para los proveedores que abastecen todas
+las partes.
+select sname from suppliers
+where not exists
+    (select * from partes where not exists
+        (select * from envios where s#=suppliers.s#
+            and p#=partes.p#)
+    );
+    
+
+4.1.17 Obtenga el número de parte para todas las partes que pesan más de 16 libras
+ó son abastecidas por el proveedor S2, ó cumplen con ambos criterios.
+select p# from partes
+where weight > 16
+union
+select p# from envios
+where s#='s2';

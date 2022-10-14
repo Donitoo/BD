@@ -1,0 +1,129 @@
+-- a. (0.5 punto) Escriba la sentencia para iniciar una sesión de trabajo utilizando un usuario Administrador en la consola de Oracle Database (consola).
+HR AS SYSDBA
+
+
+-- b. (1 puntos) En la consola, escriba la sentencia para crear el perfil Recurso que tenga por lo menos
+-- dos límites de autenticación de contraseña y dos límites de recursos utilizando el usuario
+-- Administrador.
+
+CREATE PROFILE Recurso LIMIT
+    PASSWORD_REUSE_MAX 10
+    PASSWORD_REUSE_TIME 30
+    CPU_PER_SESSION  UNLIMITED 
+    CPU_PER_CALL 3000  ;
+
+-- c. (1 puntos) En la consola, escriba la sentencia para crear un usuario Asistencia que tenga las siguientes características: (tablespace Users, tablespace Temp, el perfil creado, poder insertar
+-- datos en las tablas, cambiar la contraseña la primera vez que inicia sesión el usuario) utilizando el
+-- usuario Administrador.
+
+CREATE USER Asistencia
+	IDENTIFIED BY 12345
+	DEFAULT TABLESPACE Users
+	QUOTA 10M ON Users
+	TEMPORARY TABLESPACE temp
+	QUOTA 5M ON temp
+	PROFILE Recurso
+	PASSWORD EXPIRE;
+
+GRANT CREATE SESSION TO Asistencia;
+GRANT INSERT TABLE TO Asistencia;
+
+
+-- d. (1 puntos) En la consola, escriba las sentencias para asignar todos sus privilegios necesarios para
+-- que pueda crear sesión de trabajo, crear tablas utilizando el usuario Administrador.
+GRANT CREATE SESSION TO Asistencia;
+GRANT CREATE TABLE TO Asistencia;
+
+
+-- e. (0.5 puntos) En la consola, escriba la sentencia para cambiar de usuario e iniciar la sesión de
+-- trabajo con el usuario Asistencia.
+EXIT;
+sqlplus Asistencia/12345
+
+-- f. (1.5 puntos) En la consola, escriba las sentencias para crear las tablas de Horario, EmpleadoHorario y AsistenciaEmpleado con las columnas (día de la semana, turno, hora de inicio, hora de término, código de empleado, fecha real de labor, hora de inicio real de labor y hora de término real de labor) utilizando el usuario Asistencia.
+
+CREATE TABLE Horario(
+    Horario_id NUMBER,
+    diaSemana     VARCHAR2(40),
+    Turno VARCHAR2(1),
+    Inicio DATE,
+    Termino DATE
+);
+
+CREATE TABLE EmpleadoHorario((
+    Horario_id NUMBER,
+    employee_id NUMBER
+);
+
+CREATE TABLE AsistenciaEmpleado((
+    Asistencia_id NUMBER(6),
+    employee_id NUMBER(6),
+    Fecha DATE, 
+    Inicio DATE,
+    Termino DATE
+);
+
+
+-- g. (1.5 puntos) En la consola, escriba las llaves primarias de las tablas anteriormente creadas utilizando el usuario Asistencia.
+Antes debe asignarse el privilegio 
+GRANT ALTER TABLE TO Asistencia;
+
+
+ALTER TABLE Horario
+ADD CONSTRAINT FK_Horario PRIMARY KEY (Horario_id);
+
+ALTER TABLE EmpleadoHorario
+ADD CONSTRAINT FK_EmpleadoHorario PRIMARY KEY (Horario_id,employee_id);
+
+ALTER TABLE AsistenciaEmpleado
+ADD CONSTRAINT FK_AsistenciaEmpleado PRIMARY KEY (Asistencia_id);
+
+
+-- h. (0.5 puntos) En la consola, escriba la sentencia para crear la llave foránea del esquema Asistencia utilizando el usuario Asistencia.
+ALTER TABLE EmpleadoHorario
+ADD CONSTRAINT FK_AsistenciaEmpleado_Employees
+FOREIGN KEY (employee_id)
+REFERENCES Employees (employee_id);
+
+ALTER TABLE EmpleadoHorario
+ADD CONSTRAINT FK_AsistenciaEmpleado_Horario
+FOREIGN KEY (Horario_id)
+REFERENCES Horario (Horario_id);
+
+ALTER TABLE AsistenciaEmpleado
+ADD CONSTRAINT FK_AsistenciaEmpleado_Employees
+FOREIGN KEY (employee_id)
+REFERENCES Employees (employee_id);
+
+-- i. (0.5 puntos) En la consola, escriba las sentencias para crear las restricciones necesarias para  evitar las inconsistencias del esquema Asistencia utilizando el usuario Asistencia.
+ALTER TABLE Horario
+ADD CHECK (Turno in ('M','T','N'));
+
+
+-- j. (0.5 puntos) En la consola, escriba la sentencia para cambiar de usuario e iniciar la sesión de
+-- trabajo con un usuario HR.
+QUIT;
+sqlplus HR/12345
+
+-- k. (0.5 puntos) Escriba la sentencia de asignación de privilegios al usuario Asistencia para
+-- referenciar a la columna employee_id de la tabla Employees utilizando el usuario HR.
+GRANT REFERENCES ON DBA.Employees TO Asistencia WITH GRANT OPTION;
+
+-- l. (0.5 puntos) En la consola, escriba la sentencia para cambiar de usuario e iniciar la sesión de
+-- trabajo con el usuario Asistencia.
+QUIT;
+sqlplus Asistencia/12345
+
+
+-- m. (1 puntos) En la consola, escriba la sentencia de clave foránea de las tablas del esquema Asistencia al esquema HR utilizando el usuario Asistencia.
+
+
+
+-- n. (0.5 puntos) En la consola, escriba la sentencia de creación de un índice para encontrar los códigos de empleado en la tabla que se encuentren registrado su asistencia a su centro de trabajo utilizando  el usuario Asistencia.
+GRANT CREATE INDEX TO Asistencia;
+
+CREATE INDEX Index_AsistenciaEmpleado_Employee_id
+ON AsistenciaEmpleado(employee_id)
+
+
+-- o. (1 puntos) En la consola, escriba la sentencia de una vista que contenga el código del empleado, la fecha que laboro para cada mes de acuerdo a la fecha del sistema, utilizando el usuario Asistencia.
